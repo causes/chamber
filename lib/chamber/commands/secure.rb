@@ -11,7 +11,7 @@ class   Secure < Chamber::Commands::Base
 
   def call
     disable_warnings do
-      securable_environment_variables.each do |key, value|
+      possibly_encrypted_environment_variables.each do |key, value|
         next if value.match %r{\A[A-Za-z0-9\+\/]{342}==\z}
 
         if dry_run
@@ -33,6 +33,16 @@ class   Secure < Chamber::Commands::Base
     yield
 
     $stderr = STDERR
+  end
+
+  # FIXME: This is a super hacky workaround, pending hearing from upstream
+  # about how to fix issue #22.
+  def possibly_encrypted_environment_variables
+    env = SystemEnvironment.extract_from(secured_settings.send(:raw_data))
+
+    env.map do |key, value|
+      [key.sub(/_SECURE_/, ''), value]
+    end
   end
 end
 end
